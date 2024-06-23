@@ -4,7 +4,7 @@
 #    King-Of-Knights/openwrt-6.x from King-Of-Knights
 ################################################
 
-name: Build ipq60xx-ECM
+name: Build ipq60xx-ECM 2
 
 on:
   repository_dispatch:
