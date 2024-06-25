@@ -163,49 +163,35 @@ jobs:
         name: OpenWrt_firmware_${{ env.DEVICE_NAME }}
         path: ${{ env.FIRMWARE }}
 
-    - name: Upload OpenWrt Firmware to Release
-      id: release
-      uses: ncipollo/release-action@main
-      if: env.ORGANIZE_STATUS == 'success' && env.UPLOAD_RELEASE == 'true' && (!cancelled())
-      with:
-        tag: v${{ env.FILE_DATE }}-ipq60xx-ECM
-        removeArtifacts: false
-        artifacts: ${{ env.FIRMWARE }}/*
-        allowUpdates: true
-        token: ${{ secrets.GH_TOKEN }}
-        body: |
-            ZN M2/CMIOT AX18 固件, 带NSS-ECM, 编译时间: ${{ env.FILE_DATE }}
-            
-            Default IP: 192.168.199.1
-            Default username: root
-            Default password: password
-            
-            插件列表：
-              ├ ddns
-              ├ frpc
-              ├ mosdns
-              ├ OpenClash
-              ├ ttyd
-              └ KMS
-              
+- name: Upload OpenWrt Firmware to Release
+  id: release
+  uses: ncipollo/release-action@main
+  if: env.ORGANIZE_STATUS == 'success' && env.UPLOAD_RELEASE == 'true' && (!cancelled())
+  with:
+    tag: v${{ env.FILE_DATE }}-ipq60xx-ECM
+    removeArtifacts: false
+    artifacts: ${{ env.FIRMWARE }}/*
+    allowUpdates: true
+    token: ${{ secrets.GH_TOKEN }}  # 这里引用了GH_TOKEN
+    body: |
+        ZN M2/CMIOT AX18 自用固件, 带NSS-ECM, 编译时间: ${{ env.FILE_DATE }}
+        
+        Default IP: 192.168.123.1
+        Default username: root
+        Default password: password
+        
+        插件列表：
+          ├ passwall（仅包含singbox）
+          ├ upnp
 
-    - name: Delete workflow runs
-      uses: Mattraks/delete-workflow-runs@main
-      if: env.ORGANIZE_STATUS == 'success' && (!cancelled())
-      with:
-        token: ${{ secrets.GH_TOKEN }}
-        repository: ${{ github.repository }}
-        retain_days: 3
-        keep_minimum_runs: 2
-        delete_workflow_pattern: "ipq60xx-ECM"
 
-    - name: Remove old Releases
-      uses: dev-drprasad/delete-older-releases@master
-      if: env.ORGANIZE_STATUS == 'success' && (!cancelled())
-      with:
-        repo: ${{ github.repository }}
-        keep_latest: 3
-        delete_tag_pattern: 'ipq60xx-ECM'
-        delete_tags: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}              
+- name: Remove old Releases
+  uses: dev-drprasad/delete-older-releases@master
+  if: env.ORGANIZE_STATUS == 'success' && (!cancelled())
+  with:
+    repo: ${{ github.repository }}
+    keep_latest: 3
+    delete_tag_pattern: 'ipq60xx-ECM'
+    delete_tags: true
+  env:
+    GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}  # 这里引用了GH_TOKEN
