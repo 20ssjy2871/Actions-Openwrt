@@ -156,31 +156,56 @@ jobs:
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
         echo "ORGANIZE_STATUS=success" >> $GITHUB_ENV
         
-    - name: Upload Firmware To Artifact(将固件上传到Artifact)
-      if: steps.compile.outputs.status == 'success' && env.FIRMWARE_RELEASE != 'true'
+    - name: Upload firmware to action artifact
       uses: actions/upload-artifact@main
+      if: env.ORGANIZE_STATUS == 'success' && env.UPLOAD_FIRMWARE == 'true' && !cancelled()
       with:
-        name: ${{ env.SOURCE_REPO }}-firmware-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}-${{ env.FILE_DATE }}
-        path: ${{ env.FIRMWARE_PATH }}
+        name: OpenWrt_firmware_${{ env.DEVICE_NAME }}
+        path: ${{ env.FIRMWARE }}
 
-    - name: Upload Firmware To Release(发布固件)
-      if: steps.compile.outputs.status == 'success' && env.FIRMWARE_RELEASE == 'true'
-      uses: ncipollo/release-action@v1
+    - name: Upload OpenWrt Firmware to Release
+      id: release
+      uses: ncipollo/release-action@main
+      if: env.ORGANIZE_STATUS == 'success' && env.UPLOAD_RELEASE == 'true' && (!cancelled())
       with:
-        name: R${{ env.DATE }} for ${{ env.FIRMWARE_TAG }}
+        tag: v${{ env.FILE_DATE }}-ipq60xx-ECM
+        removeArtifacts: false
+        artifacts: ${{ env.FIRMWARE }}/*
         allowUpdates: true
-        tag: ${{ env.FIRMWARE_TAG }}
-        token: ${{ secrets.GITHUB_TOKEN }}
-        artifacts: ${{ env.FIRMWARE_PATH }}/*
+        token: ${{ secrets.GH_TOKEN }}
         body: |
-          **This is OpenWrt Firmware for ${{ env.FIRMWARE_TAG }}**
-          ### 📒 固件信息(无WIFI)
-          - 无WIFI带有线NSS的6.6内核固件
-          - 💻 这是 ${{ env.FIRMWARE_TAG }} 平台使用的 OpenWrt 固件
-          - ⚽ 固件源码: ${{ env.REPO_URL }}
-          - 💝 源码分支: ${{ env.REPO_BRANCH }}
-          - 🌐 默认地址: 192.168.1.1
-          - 🔑 默认密码: password
-          ### 🧊 固件版本
-          - 固件编译前最后一次➦[主源码](${{ env.REPO_URL }})更新记录
-          - ${{ env.VERSION_INFO }}
+            ZN M2/CMIOT AX18 固件, 带NSS-ECM, 编译时间: ${{ env.FILE_DATE }}
+            
+            Default IP: 192.168.199.1
+            Default username: root
+            Default password: password
+            
+            插件列表：
+              ├ ddns
+              ├ frpc
+              ├ mosdns
+              ├ OpenClash
+              ├ ttyd
+              └ KMS
+              
+
+    - name: Delete workflow runs
+      uses: Mattraks/delete-workflow-runs@main
+      if: env.ORGANIZE_STATUS == 'success' && (!cancelled())
+      with:
+        token: ${{ secrets.GH_TOKEN }}
+        repository: ${{ github.repository }}
+        retain_days: 3
+        keep_minimum_runs: 2
+        delete_workflow_pattern: "ipq60xx-ECM"
+
+    - name: Remove old Releases
+      uses: dev-drprasad/delete-older-releases@master
+      if: env.ORGANIZE_STATUS == 'success' && (!cancelled())
+      with:
+        repo: ${{ github.repository }}
+        keep_latest: 3
+        delete_tag_pattern: 'ipq60xx-ECM'
+        delete_tags: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}              
